@@ -22,7 +22,8 @@ export const CesiumComponent: React.FunctionComponent<{
     const cesiumContainerRef = React.useRef<HTMLDivElement>(null);
     const addedScenePrimitives = React.useRef<Cesium3DTileset[]>([]);
     const [isLoaded, setIsLoaded] = React.useState(false);
-    const { setViewer } = useMap();
+    const eventHandler = React.useRef<any>(null);
+    const { setViewer, isDrawingFlightPath, addPointToFlightPath } = useMap();
 
     // 在创建viewer后设置到context
     React.useEffect(() => {
@@ -140,6 +141,45 @@ export const CesiumComponent: React.FunctionComponent<{
 
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [positions, isLoaded]);
+
+    // 添加点击事件处理程序以支持航线绘制
+    React.useEffect(() => {
+        if (cesiumViewer.current && CesiumJs) {
+            // 清理旧的事件处理程序
+            if (eventHandler.current) {
+                eventHandler.current.destroy();
+            }
+
+            // 创建新的事件处理程序
+            eventHandler.current = new CesiumJs.ScreenSpaceEventHandler(cesiumViewer.current.scene.canvas);
+            eventHandler.current.setInputAction((movement: any) => {
+                if (isDrawingFlightPath) {
+                    // 获取点击位置的坐标
+                    const cartesian = cesiumViewer.current?.camera.pickEllipsoid(
+                        movement.position, 
+                        cesiumViewer.current.scene.globe.ellipsoid
+                    );
+                    
+                    if (cartesian) {
+                        const cartographic = CesiumJs.Cartographic.fromCartesian(cartesian);
+                        const longitude = CesiumJs.Math.toDegrees(cartographic.longitude);
+                        const latitude = CesiumJs.Math.toDegrees(cartographic.latitude);
+                        
+                        // 添加点到航线
+                        addPointToFlightPath(latitude, longitude);
+                    }
+                }
+            }, CesiumJs.ScreenSpaceEventType.LEFT_CLICK);
+        }
+
+        // 组件卸载时清理事件处理程序
+        return () => {
+            if (eventHandler.current) {
+                eventHandler.current.destroy();
+                eventHandler.current = null;
+            }
+        };
+    }, [CesiumJs, isDrawingFlightPath, addPointToFlightPath]);
 
     //NOTE: Examples of typing... See above on "import type"
     const entities: Entity[] = [];
