@@ -6,8 +6,8 @@ const SideBar = () => {
   const { flyToLocation } = useMap();
   
   const goToBeijing = () => {
-    // 北京的坐标
-    flyToLocation(39.9042, 116.4074, 50000);
+    // 北京的坐标 - 向下调整纬度值
+    flyToLocation(38.7, 116.4074, 100000);
   };
   
   return (
