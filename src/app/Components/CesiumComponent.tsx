@@ -31,12 +31,30 @@ export const CesiumComponent: React.FunctionComponent<{
             //Guide: https://cesium.com/learn/ion/cesium-ion-access-tokens/
             CesiumJs.Ion.defaultAccessToken = `${process.env.NEXT_PUBLIC_CESIUM_TOKEN}`;
 
-            //NOTE: Always utilize CesiumJs; do not import them from "cesium"
+            // 创建查看器，避免使用错误的属性
             cesiumViewer.current = new CesiumJs.Viewer(cesiumContainerRef.current, {
-                //Using the Sandcastle example below
-                //https://sandcastle.cesium.com/?src=3D%20Tiles%20Feature%20Styling.html
-                terrain: CesiumJs.Terrain.fromWorldTerrain()
-            });
+                terrain: CesiumJs.Terrain.fromWorldTerrain(),
+                baseLayerPicker: false, // 禁用底图选择器
+                sceneMode: CesiumJs.SceneMode.SCENE3D
+            } as any); // 使用类型断言解决TypeScript错误
+            
+            // 异步加载影像
+            const setupImagery = async () => {
+                try {
+                    // 使用异步方法加载影像
+                    const worldImagery = await CesiumJs.createWorldImageryAsync({
+                        style: CesiumJs.IonWorldImageryStyle.AERIAL_WITH_LABELS
+                    });
+                    
+                    // 清除默认图层并添加我们的图层
+                    cesiumViewer.current?.imageryLayers.removeAll();
+                    cesiumViewer.current?.imageryLayers.addImageryProvider(worldImagery);
+                } catch (error) {
+                    console.error("加载卫星影像失败:", error);
+                }
+            };
+            
+            setupImagery();
 
             //NOTE: Example of configuring a Cesium viewer
             cesiumViewer.current.clock.clockStep = CesiumJs.ClockStep.SYSTEM_CLOCK_MULTIPLIER;
