@@ -122,7 +122,7 @@ export const CesiumComponent: React.FunctionComponent<{
         <div
             ref={cesiumContainerRef}
             id='cesium-container'
-            style={{height: '100vh', width: '100vw'}}
+            className='w-full h-full'
         />
     )
 }
