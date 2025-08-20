@@ -8,6 +8,8 @@ import type { Position } from '../types/position';
 import { dateToJulianDate } from '../example_utils/date';
 //NOTE: This is required to get the stylings for default Cesium UI and controls
 import 'cesium/Build/Cesium/Widgets/widgets.css';
+import { useMap } from '../context/MapContext';
+
 
 export const CesiumComponent: React.FunctionComponent<{
     CesiumJs: CesiumType,
@@ -20,6 +22,32 @@ export const CesiumComponent: React.FunctionComponent<{
     const cesiumContainerRef = React.useRef<HTMLDivElement>(null);
     const addedScenePrimitives = React.useRef<Cesium3DTileset[]>([]);
     const [isLoaded, setIsLoaded] = React.useState(false);
+    const { setViewer } = useMap();
+
+    // 在创建viewer后设置到context
+    React.useEffect(() => {
+        if (cesiumViewer.current === null && cesiumContainerRef.current) {
+            //OPTIONAL: Assign access Token here
+            //Guide: https://cesium.com/learn/ion/cesium-ion-access-tokens/
+            CesiumJs.Ion.defaultAccessToken = `${process.env.NEXT_PUBLIC_CESIUM_TOKEN}`;
+
+            //NOTE: Always utilize CesiumJs; do not import them from "cesium"
+            cesiumViewer.current = new CesiumJs.Viewer(cesiumContainerRef.current, {
+                //Using the Sandcastle example below
+                //https://sandcastle.cesium.com/?src=3D%20Tiles%20Feature%20Styling.html
+                terrain: CesiumJs.Terrain.fromWorldTerrain()
+            });
+
+            //NOTE: Example of configuring a Cesium viewer
+            cesiumViewer.current.clock.clockStep = CesiumJs.ClockStep.SYSTEM_CLOCK_MULTIPLIER;
+            
+            // 设置viewer到context
+            setViewer(cesiumViewer.current);
+        }
+        
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [CesiumJs, setViewer]);
+
 
     const resetCamera = React.useCallback(async () => {
         // Set the initial camera to look at Seattle
@@ -86,25 +114,7 @@ export const CesiumComponent: React.FunctionComponent<{
         }
     }, [positions]);
 
-    React.useEffect(() => {
-        if (cesiumViewer.current === null && cesiumContainerRef.current) {
-            //OPTIONAL: Assign access Token here
-            //Guide: https://cesium.com/learn/ion/cesium-ion-access-tokens/
-            CesiumJs.Ion.defaultAccessToken = `${process.env.NEXT_PUBLIC_CESIUM_TOKEN}`;
-
-            //NOTE: Always utilize CesiumJs; do not import them from "cesium"
-            cesiumViewer.current = new CesiumJs.Viewer(cesiumContainerRef.current, {
-                //Using the Sandcastle example below
-                //https://sandcastle.cesium.com/?src=3D%20Tiles%20Feature%20Styling.html
-                terrain: CesiumJs.Terrain.fromWorldTerrain()
-            });
-
-            //NOTE: Example of configuring a Cesium viewer
-            cesiumViewer.current.clock.clockStep = CesiumJs.ClockStep.SYSTEM_CLOCK_MULTIPLIER;
-        }
-        
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    // 此useEffect已合并到上面的useEffect中
 
     React.useEffect(() => {
         if (isLoaded) return;
